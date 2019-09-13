@@ -2,6 +2,7 @@
 #define _UNICODE
 #include <windows.h>
 #include <tchar.h>
+#include <stdio.h>
 
 #define UNUSED(var) ((void)var)
 
@@ -28,8 +29,6 @@
 // classname; maps the static info to the instance 
 const TCHAR CLSNAME[] = TEXT("helloworldClass");
 
-int g_RUNNING = 1;
-
 /**
  * Procedure to program all window components
  */
@@ -44,16 +43,11 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
     wc.cbSize = sizeof(WNDCLASSEX); // cbSize = c (char) b (byte) size (well... Size)
     wc.lpfnWndProc = winproc; // handle to program instances of this. lpfnWndProc 
                               // lp (long pointer) fn (function ?) WndProc (window procedure)
-    wc.cbClsExtra = 0;
-        // extra bytes for the static class, once again c (char) b (byte)
-    wc.cbWndExtra = 0;
-        // extra bytes for any instance of the class, once again c (char) b (byte)
     wc.hInstance = hInst; // Instance handler (h for handler). Machinery that creates instances.
                           // As this is the top level component we uses the instance handler parsed to us
     wc.hIcon = LoadIcon(NULL, IDI_APPLICATION); // What icon the windows should have
     wc.hCursor = LoadCursor(NULL, IDC_ARROW); // mouse cursor IDC_ARROW is the normal cursor
     wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
-    wc.lpszMenuName = NULL;
     wc.lpszClassName = CLSNAME;
     wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
@@ -68,14 +62,12 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
         CLSNAME,
         NULL,
         WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        NULL,
-        NULL,
-        hInst,
-        NULL
+        // size and position
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        NULL, // parent
+        NULL, // Menu
+        hInst, // instance handler
+        NULL // additional app data
     );
 
     if (!hwnd) {
@@ -83,17 +75,48 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
         return 0;
     }
 
-    MSG msg;
     ShowWindow(hwnd, cmdshow);
-    UpdateWindow(hwnd);
-    while ( g_RUNNING && GetMessage(&msg, NULL, 0, 0)  ) {
+
+    MSG msg = {0};
+    while ( GetMessage(&msg, NULL, 0, 0)  ) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
     return msg.wParam;
 }
 
-LRESULT CALLBACK winproc(HWND hwnd, UINT wm, WPARAM wp, LPARAM lp) {
+LRESULT CALLBACK winproc(HWND hwnd, UINT wmsg, WPARAM wp, LPARAM lp) {
+    static LPTCH text = NULL;
 
-    return DefWindowProc(hwnd, wm, wp, lp);
+    // wmsg contains window event enum
+
+    switch (wmsg) {
+        case WM_CREATE: // Creation event when a window is created
+            if (!text) text = malloc(sizeof(TCHAR) * 128);
+            return 0;
+        case WM_CLOSE: // clicked on close button
+            switch(MessageBox(hwnd, TEXT("Are you sure??"), TEXT("Confirmation"), MB_YESNO)) {
+                case IDYES:
+                    DestroyWindow(hwnd);
+                    break;
+                case IDNO:
+                    break;
+            }
+            return 0;
+        case WM_DESTROY: // window is being destroyed, we can clean up stuff here
+            free(text);
+            PostQuitMessage(0);
+            return 0;
+        case WM_PAINT: { // On update 
+                PAINTSTRUCT ps;
+                HDC hdc = BeginPaint(hwnd, &ps);
+                FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
+
+                EndPaint(hwnd, &ps);
+            }
+            return 0;
+    }
+
+
+    return DefWindowProc(hwnd, wmsg, wp, lp);
 }
