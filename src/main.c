@@ -85,14 +85,18 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
     return msg.wParam;
 }
 
+void onCreate(HWND hwnd, LPTCH resource);
+void onDestroy(HWND hwnd, LPTCH resource);
+void onSize(HWND hwnd, UINT flag, int width, int height);
+void onRender(HWND hwnd);
+
 LRESULT CALLBACK winproc(HWND hwnd, UINT wmsg, WPARAM wp, LPARAM lp) {
     static LPTCH text = NULL;
 
     // wmsg contains window event enum
-
     switch (wmsg) {
         case WM_CREATE: // Creation event when a window is created
-            if (!text) text = malloc(sizeof(TCHAR) * 128);
+            onCreate(hwnd, text);
             return 0;
         case WM_CLOSE: // clicked on close button
             switch(MessageBox(hwnd, TEXT("Are you sure??"), TEXT("Confirmation"), MB_YESNO)) {
@@ -104,19 +108,48 @@ LRESULT CALLBACK winproc(HWND hwnd, UINT wmsg, WPARAM wp, LPARAM lp) {
             }
             return 0;
         case WM_DESTROY: // window is being destroyed, we can clean up stuff here
-            free(text);
+            onDestroy(hwnd, text);
             PostQuitMessage(0);
             return 0;
-        case WM_PAINT: { // On update 
-                PAINTSTRUCT ps;
-                HDC hdc = BeginPaint(hwnd, &ps);
-                FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
+        case WM_PAINT: // On update
+            onRender(hwnd);
+            return 0;
+        case WM_SIZE: // On resize
+            {
+                int w = LOWORD(lp);
+                int h = HIWORD(lp);
 
-                EndPaint(hwnd, &ps);
+                onSize(hwnd, (UINT) wp, w, h);
             }
             return 0;
     }
-
-
+    // all messages needs to be handled so this function handles it
     return DefWindowProc(hwnd, wmsg, wp, lp);
+}
+
+/**
+ * Resize dispatch
+ */
+void onSize(HWND hwnd, UINT flag, int width, int height) {
+    UNUSED(hwnd);
+    UNUSED(flag);
+    printf("resizing (w: %i,h: %i)\n", width, height);
+}
+
+void onRender(HWND hwnd) {
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(hwnd, &ps);
+    FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 2));
+
+    EndPaint(hwnd, &ps);
+}
+
+void onDestroy(HWND hwnd, LPTCH resource) {
+    UNUSED(hwnd);
+    free(resource);
+}
+
+void onCreate(HWND hwnd, LPTCH resource) {
+    UNUSED(hwnd);
+    if (!resource) resource = malloc(sizeof(TCHAR) * 128);
 }

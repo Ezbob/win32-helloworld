@@ -29,8 +29,8 @@ clean:
 
 $(BUILD_DIR_DEBUG)/$(BUILD_TOOL_FILE):
 	@mkdir -p $(@D)
-	@cd $(@D) && cmake -DCMAKE_BUILD_TYPE=Debug -DEXEC_NAME=${EXEC_NAME} -DENABLE_STATS=${STATS} -G ${BUILD_TOOL_CMAKE} ../../
+	@cd $(@D) && cmake -DCMAKE_BUILD_TYPE=Debug -DEXEC_NAME=${EXEC_NAME} -G ${BUILD_TOOL_CMAKE} ../../
 
 $(BUILD_DIR_RELEASE)/$(BUILD_TOOL_FILE):
 	@mkdir -p $(@D)
-	@cd $(@D) && cmake -DCMAKE_BUILD_TYPE=Release -DEXEC_NAME=${EXEC_NAME} -DENABLE_STATS=0 -G ${BUILD_TOOL_CMAKE} ../../
+	@cd $(@D) && cmake -DCMAKE_BUILD_TYPE=Release -DEXEC_NAME=${EXEC_NAME} -G ${BUILD_TOOL_CMAKE} ../../
