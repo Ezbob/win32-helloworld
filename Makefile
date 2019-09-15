@@ -1,36 +1,25 @@
-# This is the frontend makefile for the cmake and ninja build system
-BUILD_TOOL?=ninja
-BUILD_TOOL_CMAKE?="Ninja"
-BUILD_TOOL_FILE?=build.ninja
-EXEC_NAME?=helloworld
+SOURCE_DIR=src
+BUILD_DIR=build
+ROOT_DIR=$(shell pwd)
 
-BUILD_DIR_PREFIX=build
-BUILD_DIR_RELEASE=${BUILD_DIR_PREFIX}/release
-BUILD_DIR_DEBUG=${BUILD_DIR_PREFIX}/debug
+C_MODULES=helloapi
 
-help:
-	@echo "Available targets:"
-	@echo "  - release: Builds release binary in the '${BUILD_DIR_RELEASE}' directory"
-	@echo "  - debug: Builds debug binary in the '${BUILD_DIR_DEBUG}' directory"
-	@echo "  - run: Builds debug binary in the '${BUILD_DIR_DEBUG}' directory and runs it"
-	@echo "  - clean: Removes the build directories"
+C_SOURCE_DIR=${SOURCE_DIR}/c
+C_BUILD_DIR=${BUILD_DIR}/c
+C_MODULES_DIRS=$(addprefix ${C_SOURCE_DIR}/,${C_MODULES})
 
-debug: $(BUILD_DIR_DEBUG)/$(BUILD_TOOL_FILE)
-	@cd $(BUILD_DIR_DEBUG) && ${BUILD_TOOL}
+debug-all: ${C_MODULES_DIRS}/debug
 
-release: $(BUILD_DIR_RELEASE)/$(BUILD_TOOL_FILE)
-	@cd $(BUILD_DIR_RELEASE) && ${BUILD_TOOL}
+release-all: ${C_MODULES_DIRS}/release
 
-run: debug
-	./${BUILD_DIR_DEBUG}/${EXEC_NAME}
+${C_BUILD_DIR}:
+	mkdir -p $@
+
+${C_MODULES_DIRS}/debug: ${C_BUILD_DIR}
+	BUILD_DIR_PREFIX=${ROOT_DIR}/${C_BUILD_DIR}/$(notdir $(@D)) ${MAKE} -C $(@D) debug
+
+${C_MODULES_DIRS}/release: ${C_BUILD_DIR}
+	BUILD_DIR_PREFIX=${ROOT_DIR}/${C_BUILD_DIR}/$(notdir $(@D)) ${MAKE} -C $(@D) release
 
 clean:
-	$(RM) -rf ${BUILD_DIR_PREFIX}
-
-$(BUILD_DIR_DEBUG)/$(BUILD_TOOL_FILE):
-	@mkdir -p $(@D)
-	@cd $(@D) && cmake -DCMAKE_BUILD_TYPE=Debug -DEXEC_NAME=${EXEC_NAME} -G ${BUILD_TOOL_CMAKE} ../../
-
-$(BUILD_DIR_RELEASE)/$(BUILD_TOOL_FILE):
-	@mkdir -p $(@D)
-	@cd $(@D) && cmake -DCMAKE_BUILD_TYPE=Release -DEXEC_NAME=${EXEC_NAME} -G ${BUILD_TOOL_CMAKE} ../../
+	rm -rf ${BUILD_DIR}
