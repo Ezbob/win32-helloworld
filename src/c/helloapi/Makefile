@@ -28,7 +28,7 @@ init-debug: $(BUILD_DIR_DEBUG)/$(BUILD_TOOL_FILE)
 init-release: $(BUILD_DIR_RELEASE)/$(BUILD_TOOL_FILE)
 
 run: debug
-	./${BUILD_DIR_DEBUG}/${EXEC_NAME}
+	exec ${BUILD_DIR_DEBUG}/${EXEC_NAME}
 
 clean:
 	$(RM) -rf ${BUILD_DIR_PREFIX}
