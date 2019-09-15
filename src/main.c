@@ -29,6 +29,11 @@
 // classname; maps the static info to the instance 
 const TCHAR CLSNAME[] = TEXT("helloworldClass");
 
+struct StateInfo { // Window state
+    int anwser;
+    LPTCH text;
+};
+
 /**
  * Procedure to program all window components
  */
@@ -56,6 +61,8 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
         return 0;
     }
 
+    struct StateInfo a = {0};
+
     HWND hwnd;
     hwnd = CreateWindowEx(
         WS_EX_LEFT,
@@ -67,7 +74,8 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
         NULL, // parent
         NULL, // Menu
         hInst, // instance handler
-        NULL // additional app data
+        (void *) (&a)
+        //NULL // additional app data
     );
 
     if (!hwnd) {
@@ -85,18 +93,21 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
     return msg.wParam;
 }
 
-void onCreate(HWND hwnd, LPTCH resource);
-void onDestroy(HWND hwnd, LPTCH resource);
+void onPaint(HWND hwnd);
+void onCreate(HWND hwnd, CREATESTRUCT *createStruct);
+void onDestroy(HWND hwnd);
 void onSize(HWND hwnd, UINT flag, int width, int height);
 void onRender(HWND hwnd);
 
 LRESULT CALLBACK winproc(HWND hwnd, UINT wmsg, WPARAM wp, LPARAM lp) {
-    static LPTCH text = NULL;
 
     // wmsg contains window event enum
     switch (wmsg) {
         case WM_CREATE: // Creation event when a window is created
-            onCreate(hwnd, text);
+            {
+                CREATESTRUCT *createStruct = (CREATESTRUCT *) lp;
+                onCreate(hwnd, createStruct);
+            }
             return 0;
         case WM_CLOSE: // clicked on close button
             switch(MessageBox(hwnd, TEXT("Are you sure??"), TEXT("Confirmation"), MB_YESNO)) {
@@ -108,11 +119,11 @@ LRESULT CALLBACK winproc(HWND hwnd, UINT wmsg, WPARAM wp, LPARAM lp) {
             }
             return 0;
         case WM_DESTROY: // window is being destroyed, we can clean up stuff here
-            onDestroy(hwnd, text);
+            onDestroy(hwnd);
             PostQuitMessage(0);
             return 0;
         case WM_PAINT: // On update
-            onRender(hwnd);
+            onPaint(hwnd);
             return 0;
         case WM_SIZE: // On resize
             {
@@ -136,20 +147,34 @@ void onSize(HWND hwnd, UINT flag, int width, int height) {
     printf("resizing (w: %i,h: %i)\n", width, height);
 }
 
-void onRender(HWND hwnd) {
+void onPaint(HWND hwnd) {
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd, &ps);
     FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 2));
 
+    struct StateInfo *state = (struct StateInfo *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+    wprintf(L"PAINTING %s\n", state->text);
+
     EndPaint(hwnd, &ps);
 }
 
-void onDestroy(HWND hwnd, LPTCH resource) {
-    UNUSED(hwnd);
-    free(resource);
+void onDestroy(HWND hwnd) {
+    struct StateInfo *state = (struct StateInfo *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+    free(state->text);
 }
 
-void onCreate(HWND hwnd, LPTCH resource) {
+void onCreate(HWND hwnd, CREATESTRUCT *createStruct) {
     UNUSED(hwnd);
-    if (!resource) resource = malloc(sizeof(TCHAR) * 128);
+    struct StateInfo *c = createStruct->lpCreateParams;
+
+    static size_t bufsiz = sizeof(TCHAR) * 128;
+    c->anwser = 32;
+    c->text = calloc(bufsiz + 1, sizeof(TCHAR));
+
+    swprintf_s(c->text, bufsiz + 1, L"Hello there\n");
+
+    SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) c);
+        // setting my data so that we can get it back any time via "GetWindowLongPtr"
+
 }
